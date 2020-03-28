@@ -12,31 +12,32 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		print self.data
 		lines = self.data.split("\n")
 		header = {}
-		body = {}
+		body = ""
+		body_flag = False
+
 		for line in lines:
-			if line.split(" ")[0].lower() == "get" or line.split(" ")[0].lower() == "post" \
-			or line.split(" ")[0].lower() == "put":
-				parts = map(str.strip, line.split(" "))
-				header["version"] = parts[2]
-				header["type"] = parts[0]
-				if parts[0].lower() == "get" and parts[1].find("&") >= 0:
-					header["url"] = parts[1].split("&", 1)[0]
-					pairs = map(str.strip, parts[1].split("&", 1)[1].split("&"))
-					for pair in pairs:
-						body[pair.split("=")[0]] = pair.split("=")[1]
-				else:
-					header["url"] = parts[1]
+			if (len(line.strip()) == 0):
+				body_flag = True
+			if body_flag == False:
+				if line.split(" ")[0].lower() == "get" or line.split(" ")[0].lower() == "post" \
+				or line.split(" ")[0].lower() == "put":
+					parts = map(str.strip, line.split(" "))
+					header["version"] = parts[2]
+					header["type"] = parts[0]
+					if parts[0].lower() == "get" and parts[1].find("?") >= 0:
+						header["url"] = parts[1].split("?", 1)[0]
+						body = parts[1].split("?")[1]
+					else:
+						header["url"] = parts[1]
 
-			elif line.find(":") >= 0:
-				pair = line.split(":", 1)
-				header[pair[0].strip()] = pair[1].strip()
+				elif line.find(":") >= 0:
+					pair = line.split(":", 1)
+					header[pair[0].strip()] = pair[1].strip()
 
-			elif len(line.strip()) > 0:
-				pairs = map(str.strip, line.split("&"))
-				for pair in pairs:
-					body[pair.split("=")[0]] = pair.split("=")[1]
+			elif header["type"].lower() != "get":
+				body += line + "\n"
 		self.parsed = {"header": header, "body": body}
-		
+
 	def validate_reqest(self):
 		global routes
 		header = self.parsed["header"]
