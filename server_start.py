@@ -11,9 +11,6 @@ def load_routes():
 	with open("routes.config") as json_data:
 		routes = json.load(json_data)
 
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    pass
-
 class MyTCPHandler(SocketServer.BaseRequestHandler):
 	def parse_request(self):
 		lines = self.data.split("\n")
@@ -43,6 +40,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 			elif header["method"].lower() != "get":
 				body += line + "\n"
+		print header["url"]
 		header["url"] = urllib2.unquote(header["url"])
 		self.parsed = {"header": header, "body": body.strip()}
 
@@ -78,16 +76,22 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		if self.validate_reqest():
 			ret_val = self.execute_request()
 			resp_obj = self.create_response(ret_val)
-
+		else:
+			try:
+				open_method = "r"
+				url = self.parsed["header"]["url"]
+				if url.lower().endswith("jpg") or url.lower().endswith("jpeg") or url.lower().endswith("png"):
+					open_method += "b"
+				f = open(url.split("/", 1)[1], open_method)
+				resp_obj = f.read()
+			except:
+				print "Unable to find file " + self.parsed["header"]["url"]
 		self.request.sendall(resp_obj)
-
 
 	def create_response(self,data):
 		resp_string = self.parsed["header"]["version"] + " 200 OK\n" + \
-		"Content-Type: text/html\nContent-Length: " + str(len(str(data))) + "\n\n" + data 
+		"Content-Type: " + data["type"] + "\n\n" + data["body"] 
 		return resp_string
-
-
 
 if __name__ == "__main__":
 	load_routes()
@@ -97,5 +101,6 @@ if __name__ == "__main__":
 		data = json.load(json_data)
 		HOST = str(data["host"])
 		PORT = data["port"]
+
 	server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
 	server.serve_forever()
