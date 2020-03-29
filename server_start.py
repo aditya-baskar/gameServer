@@ -17,7 +17,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		header = {}
 		body = ""
 		body_flag = False
-
+		print self.data
 		for line in lines:
 			if (len(line.strip()) == 0):
 				body_flag = True
@@ -42,7 +42,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 				body += line + "\n"
 		print header["url"]
 		header["url"] = urllib2.unquote(header["url"])
-		self.parsed = {"header": header, "body": body.strip()}
+		self.parsed = {"header": header, "body": urllib2.unquote(body.strip())}
 
 	def validate_reqest(self):
 		global routes
@@ -58,7 +58,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		func_name = req_header["method"]
 		module = ""
 		for obj in routes:
-			if obj["url"] == req_header["url"]:
+			if obj["url"] == req_header["url"] and req_header["method"].lower() == obj["method"].lower():
 				if (obj.has_key("handler")):
 					func_name = obj["handler"]
 				module = obj["url"].split("/", 1)[1].replace("/", ".")
@@ -86,6 +86,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 				resp_obj = f.read()
 			except:
 				print "Unable to find file " + self.parsed["header"]["url"]
+		print resp_obj
 		self.request.sendall(resp_obj)
 
 	def create_response(self,data):
@@ -95,7 +96,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 if __name__ == "__main__":
 	load_routes()
-	HOST, PORT = "localhost", 9998
 	
 	with open("server.config") as json_data:
 		data = json.load(json_data)
