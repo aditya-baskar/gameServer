@@ -17,7 +17,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		header = {}
 		body = ""
 		body_flag = False
-		print self.data
 		for line in lines:
 			if (len(line.strip()) == 0):
 				body_flag = True
@@ -40,7 +39,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 			elif header["method"].lower() != "get":
 				body += line + "\n"
-		print header["url"]
 		header["url"] = urllib2.unquote(header["url"])
 		self.parsed = {"header": header, "body": urllib2.unquote(body.strip())}
 
@@ -61,7 +59,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 			if obj["url"] == req_header["url"] and req_header["method"].lower() == obj["method"].lower():
 				if (obj.has_key("handler")):
 					func_name = obj["handler"]
-				module = obj["url"].split("/", 1)[1].replace("/", ".")
+				module = obj["controller"]
 		try:
 			method = getattr(importlib.import_module(module), func_name)
 		except:
@@ -86,7 +84,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 				resp_obj = f.read()
 			except:
 				print "Unable to find file " + self.parsed["header"]["url"]
-		print resp_obj
 		self.request.sendall(resp_obj)
 
 	def create_response(self,data):
