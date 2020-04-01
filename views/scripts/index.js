@@ -15,7 +15,7 @@ function checkLogin() {
 	}
 }
 
-function createTable() {
+function createBoard() {
 	var table = document.getElementById("sequence_board");
 	var sequence_board = "U.2S.3S.4S.5S.10D.QD.KD.AD.U\n6C.5C.4C.3C.2C.4S.5S.6S.7S.AC\n7C.AS.2D.3D.4D.KC.QC.10C.8S.KC\n8C.KS.6C.5C.4C.9H.8H.9C.9C.QC\n9C.QS.7C.6H.5H.2C.7H.8C.10S.10C\nAS.7H.9D.AH.4H.3H.KH.10D.6H.2D\nKS.8H.8D.2C.3C.10H.QH.QD.5H.3D\nQS.9H.7D.6D.5D.AC.AD.KD.4H.4D\n10S.10H.QH.KH.AH.3S.2S.2H.3H.5D\nU.9S.8S.7S.6S.9D.8D.7D.6D.U";
 	var rows = sequence_board.split("\n");
@@ -58,4 +58,4 @@ function playmove() {
 }
 
 checkLogin();
-createTable();
+createBoard();
