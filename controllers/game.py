@@ -4,11 +4,12 @@ import json
 def get_games(req_obj):
 	resp_obj = {}
 	resp_obj["type"] = "application/json"
-	body_str = req_obj["body"]
-	params = body_str.split("&")
 	body_obj = {}
-	for param in params:
-		body_obj[param.split("=")[0].strip()] = param.split("=")[1].strip()
+	body_str = req_obj["body"].strip()
+	if len(body_str) != 0:
+		params = body_str.split("&")
+		for param in params:
+			body_obj[param.split("=")[0].strip()] = param.split("=")[1].strip()
 	game_list = {}
 	if len(body_obj) == 0:
 		method = getattr(importlib.import_module("models.dbConnector"), "get_all_games")
@@ -25,9 +26,9 @@ def start_game(req_obj):
 	body = {}
 	for param in params:
 		body[param.split("=")[0].strip()] = param.split("=")[1].strip()
-	body["game_id"] = int(body[game_id])
+	body["game_id"] = int(body["game_id"])
 	method = getattr(importlib.import_module("models.dbConnector"), "get_game")
-	curent_game = method(body[game_id])
+	current_game = method(body["game_id"])
 	player_count = 0
 	for i in range(1,7):
 		if current_game["P" + str(i)] == None:
@@ -63,9 +64,18 @@ def get_board(req_obj):
 	for param in params:
 		body[param.split("=")[0].strip()] = param.split("=")[1].strip()
 	method = getattr(importlib.import_module("models.dbConnector"), "get_board")
-	current_game = method(int(body["game_id"]))
+	current_board = method(int(body["game_id"]))
+
+	method = getattr(importlib.import_module("models.dbConnector"), "get_player_hand")
+	player_hand = method(int(body["game_id"]), body["email_id"])
+
+	if player_hand == None:
+		current_board["current_hand"] = ""
+	else:
+		current_board["current_hand"] = player_hand["current_hand"]
+
 	resp_obj["type"] = "application/json"
-	resp_obj["body"] = json.dumps(current_game)
+	resp_obj["body"] = json.dumps(current_board)
 	return resp_obj
 
 def create_game(req_obj):
@@ -75,6 +85,7 @@ def create_game(req_obj):
 		body[param.split("=")[0].strip()] = param.split("=")[1].strip()
 	method = getattr(importlib.import_module("models.dbConnector"), "create_game")
 	current_game = method(body["email_id"])
+	resp_obj = {}
 	resp_obj["type"] = "application/json"
 	resp_obj["body"] = json.dumps(current_game)
 	return resp_obj
@@ -133,6 +144,14 @@ def play_move(req_obj):
 	if int(body["remove"]) == 1:
 		body["winner"] = False
 	else:
-		method = getattr(importlib.import_module("models.game"), "check_win")	
-		boay["winner"] = method(current_game_board["board_state"], board[int(body["row"])][int(body["col"])])[0]
-	return resp_obj
+		method = getattr(importlib.import_module("models.game"), "check_win")
+		body["winner"] = method(current_game_board["board_state"], board[int(body["row"])][int(body["col"])])[0]
+
+	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
+	player_hand = method(body["game_id"], body["email_id"], body["current_card"].strip())
+
+	resp_obj["body"] = {}
+	resp_obj["body"]["winner"] = body["winner"]
+	resp_obj["body"]["board_state"] = board_str
+	resp_obj["body"]["current_hand"] = player_hand["current_hand"]
+	return json.dumps(resp_obj)

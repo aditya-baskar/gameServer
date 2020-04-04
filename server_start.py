@@ -65,6 +65,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		except:
 			print "error when loading function"
 			return None
+		print module + " " + func_name
 		return method(self.parsed)
 
 	def handle(self):
@@ -73,6 +74,8 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		ret_val = None
 		if self.validate_reqest():
 			ret_val = self.execute_request()
+			if ret_val == None:
+				print "Failed"
 			resp_obj = self.create_response(ret_val)
 		else:
 			try:

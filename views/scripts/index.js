@@ -6,7 +6,7 @@ function checkLogin() {
 		var iter;
 		for (iter = 0; iter < cookies.length; iter++) {
 			if (cookies[iter].split("=")[0].trim() == "email_id") {
-				current_user = cookies[iter].split("=")[1]
+				current_user = cookies[iter].split("=")[1];
 			}
 		}
 		if (current_user == "") {

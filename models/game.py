@@ -15,7 +15,7 @@ def record_to_game(db_record):
 def recordlist_to_game(record_list):
 	games = []
 	for record in record_list:
-		games.push(record_to_game(record))
+		games.append(record_to_game(record))
 	ret_obj = {}
 	ret_obj["games"] = games
 	return ret_obj
@@ -52,54 +52,54 @@ def check_win(board_str, colour):
 	#checking rows
 	for i in range(0,10):
 		current_sequence = []
-		seqence_count = 0
+		sequence_count = 0
 		for j in range(0,10):
 			if board[i][j] == "A" or board[i][j] == colour:
-				seqence_count ++
+				sequence_count += 1
 				current_sequence.append(i*10 + j)
 			else:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
 					sequence_count = 0
 					current_sequence = []
 		if board[i][9] == "A" or board[i][9] == colour:
-			if seqence_count >= 9:
-					win = True
+			if sequence_count >= 9:
+				win = True
+				sequence_index.append(current_sequence)
+			else:
+				if sequence_count >= 5:
 					sequence_index.append(current_sequence)
-				else:
-					if seqence_count >= 5:
-						sequence_index.append(current_sequence)
 	if win:
 		return (True, sequence_index)
 	#checking colums
 	for j in range(0,10):
 		current_sequence = []
-		seqence_count = 0
+		sequence_count = 0
 		
 		for i in range(0,10):
 			if board[i][j] == "A" or board[i][j] == colour:
-				seqence_count ++
+				sequence_count += 1
 				current_sequence.append(i*10 + j)
 			else:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
 					sequence_count = 0
 					current_sequence = []
 		if board[9][j] == "A" or board[9][j] == colour:
-			if seqence_count >= 9:
-					win = True
+			if sequence_count >= 9:
+				win = True
+				sequence_index.append(current_sequence)
+			else:
+				if sequence_count >= 5:
 					sequence_index.append(current_sequence)
-				else:
-					if seqence_count >= 5:
-						sequence_index.append(current_sequence)
 	if win or len(sequence_index) >= 2:
 		return (True, sequence_index)
 	#checking first set of diagonals
@@ -109,29 +109,29 @@ def check_win(board_str, colour):
 		i = start[0]
 		j = start[1]
 		current_sequence = []
-		seqence_count = 0
+		sequence_count = 0
 		while i < 10 and j < 10:
 			if board[i][j] == "A" or board[i][j] == colour:
-				seqence_count ++
+				sequence_count += 1
 				current_sequence.append(i*10 + j)
 			else:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
 					sequence_count = 0
 					current_sequence = []
 			if i == 9 or j == 9:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
-			i++
-			j++
+			i += 1
+			j += 1
 	if win or len(sequence_index) >= 2:
 		return (True, sequence_index)
 
@@ -141,29 +141,29 @@ def check_win(board_str, colour):
 		i = start[0]
 		j = start[1]
 		current_sequence = []
-		seqence_count = 0
+		sequence_count = 0
 		while i < 10 and j > 0:
 			if board[i][j] == "A" or board[i][j] == colour:
-				seqence_count ++
+				sequence_count += 1
 				current_sequence.append(i*10 + j)
 			else:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
 					sequence_count = 0
 					current_sequence = []
 			if i == 9 or j == 0:
-				if seqence_count >= 9:
+				if sequence_count >= 9:
 					win = True
 					sequence_index.append(current_sequence)
 				else:
-					if seqence_count >= 5:
+					if sequence_count >= 5:
 						sequence_index.append(current_sequence)
-			i++
-			j--
+			i += 1
+			j += -1
 	if win or len(sequence_index) >= 2:
 		return (True, sequence_index)
 	
