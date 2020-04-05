@@ -1,12 +1,38 @@
 .board_card {
 	width: 125px;
 	height: 175px;
+	padding: 10px;
+	position: relative;
+}
+.R {
+	display: block;
+	width: 100px;
+	z-index: 2;
+	position: absolute;
+	filter: drop-shadow(5px 5px 5px #222);
+}
+.G {
+	display: block;
+  	width: 100px;
+	z-index: 2;
+	position: absolute;
+	filter: drop-shadow(5px 5px 5px #222);
+}
+.B {
+	display: block;
+	width: 100px;
+	z-index: 2;
+	position: absolute;
+	filter: drop-shadow(5px 5px 5px #222);
+}
+#player_hand {
+	height: 200px;
+	background-color: green;
+}
+.player_card {
+	width: 125px;
+	height: 175px;
 	margin: 5px;
-	position: relative
 }
-tr {
-	height: 195px
-}
-td {
-	width: 135px
+#sequence_board {
 }

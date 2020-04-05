@@ -65,7 +65,6 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		except:
 			print "error when loading function"
 			return None
-		print module + " " + func_name
 		return method(self.parsed)
 
 	def handle(self):
@@ -76,22 +75,42 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 			ret_val = self.execute_request()
 			if ret_val == None:
 				print "Failed"
-			resp_obj = self.create_response(ret_val)
+			self.request.sendall(self.create_response(ret_val))
 		else:
+			url = self.parsed["header"]["url"]
+			resp_obj = {}
+			if url.lower().endswith("js"):
+				resp_obj["type"] = "text/javascript; charset=UTF-8"
+			elif url.lower().endswith("png"):
+				resp_obj["type"] = "image/png"
+			elif url.lower().endswith("jpg"):
+				resp_obj["type"] = "image/jpg"
+			elif url.lower().endswith("jpeg"):
+				resp_obj["type"] = "image/jpeg"
+			elif url.lower().endswith("ico"):
+				resp_obj["type"] = "image/png"
+			elif url.lower().endswith("css"):
+				resp_obj["type"] = "text/css"
+			else:
+				resp_obj["type"] = "text/html; charset=UTF-8"
 			try:
 				open_method = "r"
-				url = self.parsed["header"]["url"]
 				if url.lower().endswith("jpg") or url.lower().endswith("jpeg") or url.lower().endswith("png"):
 					open_method += "b"
 				f = open(url.split("/", 1)[1], open_method)
-				resp_obj = f.read()
+				resp_obj["body"] = f.read()
 			except:
 				print "Unable to find file " + self.parsed["header"]["url"]
-		self.request.sendall(resp_obj)
+			self.request.sendall(self.create_response(resp_obj))
 
 	def create_response(self,data):
-		resp_string = self.parsed["header"]["version"] + " 200 OK\n" + \
-		"Content-Type: " + data["type"] + "\n\n" + data["body"] 
+		resp_string = ""
+		if data == None:
+			resp_string = self.parsed["header"]["version"] + " 500 Internal Server Error\n" + \
+			"Content-Type: application/json\n\n{}" 
+		else:
+			resp_string = self.parsed["header"]["version"] + " 200 OK\n" + \
+			"Content-Type: " + data["type"] + "\n\n" + data["body"] 
 		return resp_string
 
 if __name__ == "__main__":

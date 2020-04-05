@@ -30,14 +30,13 @@ def record_to_board(db_record):
 def move_to_board(board_str, row, col, colour):
 	board = []
 	rows = board_str.split("\n")
-	for row in rows:
-		board.append(row.split("."))
+	for r in rows:
+		board.append(r.split("."))
 	board[row][col] = colour
-	check_win(board, row, col)
 	board_str = ""
+	delim = "."
 	for row in board:
-		for col in row:
-			board_str += col
+		board_str += delim.join(row)
 		board_str += '\n'
 	board_str.strip()
 	return board_str

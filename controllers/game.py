@@ -69,11 +69,16 @@ def get_board(req_obj):
 	method = getattr(importlib.import_module("models.dbConnector"), "get_player_hand")
 	player_hand = method(int(body["game_id"]), body["email_id"])
 
+	method = getattr(importlib.import_module("models.dbConnector"), "get_game")
+	current_game = method(int(body["game_id"]))
+
 	if player_hand == None:
 		current_board["current_hand"] = ""
 	else:
 		current_board["current_hand"] = player_hand["current_hand"]
 
+	current_board["current_player"] = current_game["current_player"]
+	resp_obj = {}
 	resp_obj["type"] = "application/json"
 	resp_obj["body"] = json.dumps(current_board)
 	return resp_obj
@@ -95,9 +100,9 @@ def play_move(req_obj):
 	body = {}
 	for param in params:
 		body[param.split("=")[0].strip()] = param.split("=")[1].strip()
-	body["game_id"] = int(body[game_id])
+	body["game_id"] = int(body["game_id"])
 	method = getattr(importlib.import_module("models.dbConnector"), "get_game")
-	curent_game = method(body[game_id])
+	current_game = method(body["game_id"])
 	current_player_index = 1
 	player_count = 0
 	for i in range(1,7):
@@ -109,17 +114,20 @@ def play_move(req_obj):
 				current_player_index = i
 	game_colour = "R"
 	if player_count == 4:
-		if player_count%2 == 0:
+		if current_player_index%2 == 0:
 			game_colour = "G"
 	elif player_count == 6:
-		if player_count%3 == 2:
+		if current_player_index%3 == 2:
 			game_colour = "G"
-		elif player_count%3 == 0:
+		elif current_player_index%3 == 0:
 			game_colour = "B"
 
 	method = getattr(importlib.import_module("models.dbConnector"), "get_board")
-	current_game_board = method(body[game_id])
+	current_game_board = method(body["game_id"])
 	
+	body["row"] = int(body["row"]);
+	body["col"] = int(body["col"]);
+
 	if int(body["remove"]) == 1:
 		board = []
 		rows = current_game_board["board_state"].split("\n")
@@ -128,30 +136,48 @@ def play_move(req_obj):
 		
 		game_colour = "#"
 		method = getattr(importlib.import_module("models.game"), "check_win")	
-		existing_sequences = method(current_game_board["board_state"], board[int(body["row"])][int(body["col"])])[1]
+		existing_sequences = method(current_game_board["board_state"], board[body["row"]][body["col"]])[1]
 		try:
-			if existing_sequences.index(int(body["row"])*10 + int(body["col"])):
+			if existing_sequences.index(body["row"]*10 + body["col"]):
 				return None
 		except:
 			pass
 
 	method = getattr(importlib.import_module("models.game"), "move_to_board")
-	board_str = method(current_game_board["board_state"], int(body["row"]), int(body["col"]), game_colour)
+	board_str = method(current_game_board["board_state"], body["row"], body["col"], game_colour)
 	method = getattr(importlib.import_module("models.dbConnector"), "play_move")
 	resp_obj = {}
 	resp_obj["type"] = "application/json"
-	body = method(body["game_id"], body["email_id"], board_str)
+	resp_body = method(body["game_id"], body["email_id"], board_str)
 	if int(body["remove"]) == 1:
-		body["winner"] = False
+		resp_body["winner"] = False
 	else:
 		method = getattr(importlib.import_module("models.game"), "check_win")
-		body["winner"] = method(current_game_board["board_state"], board[int(body["row"])][int(body["col"])])[0]
+		resp_body["winner"] = method(current_game_board["board_state"], game_colour)[0]
+
+	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
+	player_hand = method(resp_body["game_id"], body["email_id"], body["current_card"].strip())
+
+	resp_obj["body"] = {}
+	resp_obj["body"]["winner"] = resp_body["winner"]
+	resp_obj["body"]["board_state"] = board_str
+	resp_obj["body"]["current_hand"] = player_hand["current_hand"]
+
+	resp_body = json.dumps(resp_obj["body"])
+	resp_obj["body"] = resp_body
+	return resp_obj
+
+def replace_card(req_obj):
+	resp_obj = {}
+	resp_obj["type"] = "application/json";
+	params = req_obj["body"].split("&")
+	body = {}
+	for param in params:
+		body[param.split("=")[0].strip()] = param.split("=")[1].strip()
+	body["game_id"] = int(body["game_id"])
 
 	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
 	player_hand = method(body["game_id"], body["email_id"], body["current_card"].strip())
 
-	resp_obj["body"] = {}
-	resp_obj["body"]["winner"] = body["winner"]
-	resp_obj["body"]["board_state"] = board_str
-	resp_obj["body"]["current_hand"] = player_hand["current_hand"]
-	return json.dumps(resp_obj)
+	resp_obj["body"] = json.dumps(player_hand)
+	return resp_obj

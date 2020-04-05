@@ -36,7 +36,7 @@ def check_and_add_user(first_name, last_name, email_id):
 def get_user(email_id):
 	record = execute_read_command("Select * from Users where email_id='" + email_id + "';")[0]
 	method = getattr(importlib.import_module("models.user"), "record_to_user")
-	return method(record)	
+	return method(record)
 
 def create_game(player_1):
 	execute_write_command("Insert into ActiveGames (P1) Values ('" + player_1 + "');")
@@ -50,7 +50,7 @@ def get_game(game_id):
 	return method(game)
 
 def get_board(game_id):
-	board = execute_read_command("Select * from CurrentBoard where game_id = " + str(game_id) + " and started = True;")[0]
+	board = execute_read_command("Select * from CurrentBoard where game_id = " + str(game_id) + ";")[0]
 	method = getattr(importlib.import_module("models.game"), "record_to_board")	
 	return method(board)
 
@@ -122,8 +122,8 @@ def play_move(game_id, player_email, game_board):
 	if current_index == 6 or current_game[current_index + 1] == None:
 		next_player = 1
 	execute_write_command("Update ActiveGames set current_player = '" + current_game[next_player] + "' where game_id = " + str(game_id) + ";")
-	execute_write_command("Update CurrentBoard board_state = '" + game_board + "' where game_id = " + str(game_id) + ";")
-	current_board = execute_read_command("Select * from CurrentBoard where game_id = " + str(game_id) + ";")
+	execute_write_command("Update CurrentBoard set board_state = '" + game_board + "' where game_id = " + str(game_id) + ";")
+	current_board = execute_read_command("Select * from CurrentBoard where game_id = " + str(game_id) + ";")[0]
 	method = getattr(importlib.import_module("models.game"), "record_to_board")
 	return method(current_board)
 
@@ -136,10 +136,10 @@ def player_pick_card(game_id, player_email, current_card = None, card_count = 1)
 	deck = deck_str.split(".")
 	player_hand = []
 	player_hand_record = execute_read_command("Select * from PlayerHand where game_id = " + str(game_id) + " and email_id = '" + player_email + "';")
-	if len(player_hand) == 0:
+	if len(player_hand_record) == 0:
 		execute_write_command("Insert into PlayerHand values (" + str(game_id) + ", '" + player_email + "', '');")
 	else:
-		player_hand = player_hand_record[0][2].split()
+		player_hand = player_hand_record[0][2].split(".")
 		player_hand.pop(player_hand.index(current_card))
 
 	for i in range(0,card_count):
@@ -156,7 +156,7 @@ def player_pick_card(game_id, player_email, current_card = None, card_count = 1)
 def put_deck(game_id, remaining_cards):
 	current_deck = execute_read_command("Select * from CurrentDeck where game_id = " + str(game_id) + ";")
 	if len(current_deck) == 0:
-		remaining_cards = "1H.1C.1S.1D.2H.2C.2S.2D.3H.3C.3S.3D.4H.4C.4S.4D.5H.5C.5S.5D.6H.6C.6S.6D.7H.7C.7S.7D.8H.8C.8S.8D.9H.9C.9S.9D.10H.10C.10S.10D.JH.JC.JS.JD.QH.QC.QS.QD.KH.KC.KS.KD"
+		remaining_cards = "1H.1C.1S.1D.2H.2C.2S.2D.3H.3C.3S.3D.4H.4C.4S.4D.5H.5C.5S.5D.6H.6C.6S.6D.7H.7C.7S.7D.8H.8C.8S.8D.9H.9C.9S.9D.10H.10C.10S.10D.JH.JC.JS.JD.QH.QC.QS.QD.KH.KC.KS.KD.1H.1C.1S.1D.2H.2C.2S.2D.3H.3C.3S.3D.4H.4C.4S.4D.5H.5C.5S.5D.6H.6C.6S.6D.7H.7C.7S.7D.8H.8C.8S.8D.9H.9C.9S.9D.10H.10C.10S.10D.JH.JC.JS.JD.QH.QC.QS.QD.KH.KC.KS.KD"
 		card_array = remaining_cards.split('.')
 		
 		#shuffling the deck twice :p
@@ -171,7 +171,7 @@ def put_deck(game_id, remaining_cards):
 
 def get_player_hand(game_id, email_id):
 	try:
-		player_hand_record = execute_read_command("Select * from PlayerHand where game_id = " + str(game_id) + " email_id = '" + email_id + "';")[0]
+		player_hand_record = execute_read_command("Select * from PlayerHand where game_id = " + str(game_id) + " and email_id = '" + email_id + "';")[0]
 		return { "game_id": player_hand_record[0], "email_id": player_hand_record[1], "current_hand": player_hand_record[2] }
 	except:
 		return None

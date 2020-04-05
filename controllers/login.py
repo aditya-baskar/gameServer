@@ -7,7 +7,6 @@ def get(req_obj):
 	resp_obj["body"] = f.read()
 	resp_obj["type"] = "text/html"
 	f.close()
-	print resp_obj
 	return resp_obj
 
 def post(req_obj):
