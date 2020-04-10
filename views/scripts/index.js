@@ -1,6 +1,7 @@
 var current_user = "";
 var player_hand = [];
 var cur_game_id = -1;
+var auth_token = "'"
 var active_player = "";
 var two_eyed_jacks = ["JD", "JC"];
 var one_eyed_jacks = ["JS", "JH"];
@@ -18,8 +19,11 @@ function checkLogin() {
 			if (cookies[iter].split("=")[0].trim() == "game_id") {
 				cur_game_id = parseInt(cookies[iter].split("=")[1])
 			}
+			if (cookies[iter].split("=")[0].trim() == "auth_token") {
+				auth_token = cookies[iter].split("=")[1];
+			}
 		}
-		if (current_user == "") {
+		if (current_user == "" && auth_token == "") {
 			document.location.href = document.location.origin + "/views/login";
 		}
 	}
@@ -70,14 +74,21 @@ function check_played(i, j) {
 
 function replace_card() {
 	alert("changing card as it is a dead card");
-	var url = document.location.origin + "/api/cards?game_id=" + cur_game_id.toString() + "&email_id=" + current_user + "&current_card=" + current_card;
-	$.get(url, function(data, status) {
-		getBoard();
+	$.ajax({
+		url: document.location.origin + "/api/cards?game_id=" + cur_game_id.toString() + "&email_id=" + current_user + "&current_card=" + current_card,
+		type: "GET",
+		headers: { "User_Email": current_user, "Auth_Token": auth_token},
+		success: function(result) {
+			getBoard();
+		},
+		error: function(error) {
+			alert("Unable to replace dead card");
+			console.log(error);
+		}
 	});
 }
 
 function play_move(i, j) {
-	alert("here " + i.toString() + j.toString());
 	if (current_user != active_player) {
 		alert("Its not your turn yet wait please");
 		return;
@@ -86,7 +97,6 @@ function play_move(i, j) {
 		alert("Please select a card to play first");
 		return;
 	}
-	var url = document.location.origin + "/api/board";
 	var rem = 0;
 	if (current_card[0] == 'J')
 	{
@@ -99,14 +109,24 @@ function play_move(i, j) {
 		document.getElementById(current_card + "_1").style.backgroundColor = "";
 		document.getElementById(current_card + "_2").style.backgroundColor = "";
 	}
-	if (!check_played(i, j) && rem == 0) {
-		$.post(url, {email_id: current_user, game_id: cur_game_id, row: i, col: j, remove: rem, current_card: current_card }, function(data) {
-			if (data["winner"]) {
-				alert("Your team wins");
+	if (!check_played(i, j) || rem == 1) {
+		$.ajax({
+			url: document.location.origin + "/api/board",
+			headers: { "User_Email": current_user, "Auth_Token": auth_token},
+			type: "POST",
+			data: {email_id: current_user, game_id: cur_game_id, row: i, col: j, remove: rem, current_card: current_card },
+			success: function(data) {
+				if (data["winner"]) {
+					alert("Your team wins");
+				}
+				current_card = "";
+				getBoard();	
+			},
+			error: function(data) {
+				alert("Unable to play move, check console for error");
+				console.log(data);
 			}
-			current_card = "";
-			getBoard();
-		});
+		})
 	}
 	else {
 		alert("Invalid move");
@@ -114,9 +134,11 @@ function play_move(i, j) {
 }
 
 function getBoard() {
-	var url = document.location.origin + "/api/board?game_id=" + cur_game_id.toString() + "&email_id=" + current_user;
-	try {
-		$.get(url, function(data, status) {
+	$.ajax({
+		url: document.location.origin + "/api/board?game_id=" + cur_game_id.toString() + "&email_id=" + current_user,
+		type: "GET",
+		headers: { "User_Email": current_user, "Auth_Token": auth_token},
+		success: function(data) {
 			active_player = data["current_player"];
 			var board_str = data["board_state"];
 
@@ -142,6 +164,7 @@ function getBoard() {
 			active_player = data["current_player"];
 			document.getElementById("player_hand").innerHTML = "";
 
+			document.getElementById("current_player").innerText = "current player = " + active_player;
 			for (i = 0; i < player_hand.length; i++) {
 				var img = document.createElement("img");
 				img.src = "images/" + player_hand[i] + ".png";
@@ -152,12 +175,12 @@ function getBoard() {
 			if (active_player == current_user) {
 				alert("Its your turn!");
 			}
-		});
-	}
-	catch(err) {
-		alert("Unable to get the game board (Creator Hasn't started the game yet)");
-		console.log(err);
-	}
+		},
+		error: function(data) {
+			alert("Unable to get the game board");
+			console.log(data);
+		}
+	});
 }
 
 function createBoard() {

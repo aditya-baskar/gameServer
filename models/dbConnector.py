@@ -23,13 +23,14 @@ def execute_read_command(command_to_execute):
 	connection.close()
 	return record
 
-def check_and_add_user(first_name, last_name, email_id):
+def check_and_add_user(first_name, last_name, email_id, auth_token):
 	records = execute_read_command("Select * from Users where email_id='" + email_id + "';")
 
 	if len(records) == 0:
-		execute_write_command("Insert into Users Values ('" + email_id + "', '" + first_name + "', '" + last_name + "', -1);")
+		execute_write_command("Insert into Users Values ('" + email_id + "', '" + first_name + "', '" + last_name + "', -1, '" + auth_token + "');")
 		records = execute_read_command("Select * from Users where email_id='" + email_id + "';")
-
+	else:
+		execute_write_command("Update Users set auth_token='" + auth_token + "', first_name='" + first_name + "', last_name='" + last_name + "' where email_id='" + email_id + "';")
 	method = getattr(importlib.import_module("models.user"), "record_to_user")
 	return method(records[0])
 

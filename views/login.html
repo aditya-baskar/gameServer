@@ -17,16 +17,18 @@
 				console.log('Family Name: ' + profile.getFamilyName());
 				console.log("Image URL: " + profile.getImageUrl());
 				console.log("Email: " + profile.getEmail());
+				var id_token = googleUser.getAuthResponse().id_token;
+		        $.ajax({
+		        	url: document.location.origin + "/views/login",
+		        	type: "POST",
+		        	data: {first_name: profile.getGivenName(), last_name: profile.getFamilyName(), email_id:profile.getEmail(), auth_token: id_token},
+		        	success: function(data) {
+		        		document.cookie = "email_id=" + profile.getEmail();
+			        	document.cookie = "auth_token=" + id_token;
 
-        url = document.location.origin + "/views/login";
-        $.post(url, {first_name: profile.getGivenName(), last_name: profile.getFamilyName(), email_id:profile.getEmail()}, function(data, status){
-          var id_token = googleUser.getAuthResponse().id_token;
-          console.log("ID Token: " + id_token);
-
-          document.cookie = "email_id=" + profile.getEmail();
-          document.location.href = document.location.origin + "/views/game_list";
-        });
-				// The ID token you need to pass to your backend:
+			        	document.location.href = document.location.origin + "/views/game_list";
+		        	}
+		        });
 			}
 		</script>
 	</body>

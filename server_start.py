@@ -50,6 +50,14 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 				return True
 		return False
 
+	def check_auth(self):
+		header = self.parsed["header"]
+		if self.parsed["header"]["url"].lower().find("api") == -1 or self.parsed["header"]["url"].find(".") != -1:
+			return True
+		else:
+			method = getattr(importlib.import_module("models.user"), "validate_user")
+			return method(header["User_Email"], header["Auth_Token"])
+
 	def execute_request(self):
 		global routes
 		req_header = self.parsed["header"]
@@ -68,10 +76,12 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		return method(self.parsed)
 
 	def handle(self):
-		self.data = self.request.recv(1024).strip()
+		self.data = self.request.recv(4096).strip()
 		self.parse_request()
 		ret_val = None
-		if self.validate_reqest():
+		if self.check_auth() == False:
+			self.request.sendall(self.create_response(None, "401 Unauthorized"));
+		elif self.validate_reqest():
 			ret_val = self.execute_request()
 			if ret_val == None:
 				print "Failed"
@@ -103,10 +113,12 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 				print "Unable to find file " + self.parsed["header"]["url"]
 			self.request.sendall(self.create_response(resp_obj))
 
-	def create_response(self,data):
+	def create_response(self,data,status="200 OK"):
 		resp_string = ""
 		if data == None:
-			resp_string = self.parsed["header"]["version"] + " 500 Internal Server Error\n" + \
+			if status == "200 OK":
+				status = "500 Internal Server Error"
+			resp_string = self.parsed["header"]["version"] + " " + status + \
 			"Content-Type: application/json\n\n{}" 
 		else:
 			resp_string = self.parsed["header"]["version"] + " 200 OK\n" + \

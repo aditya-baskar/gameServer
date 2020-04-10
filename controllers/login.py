@@ -16,8 +16,7 @@ def post(req_obj):
 	for param in params:
 		body[param.split("=")[0]] = param.split("=")[1]
 	method = getattr(importlib.import_module("models.dbConnector"), "check_and_add_user")
-	body_obj = method(body["first_name"], body["last_name"], body["email_id"])
-	print body_obj
+	body_obj = method(body["first_name"], body["last_name"], body["email_id"], body["auth_token"])
 	resp_obj["type"] = "application/json"
 	resp_obj["body"] = str(json.dumps(body_obj))
 	return resp_obj

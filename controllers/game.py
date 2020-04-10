@@ -136,7 +136,7 @@ def play_move(req_obj):
 		
 		game_colour = "#"
 		method = getattr(importlib.import_module("models.game"), "check_win")	
-		existing_sequences = method(current_game_board["board_state"], board[body["row"]][body["col"]])[1]
+		existing_sequences = method(current_game_board["board_state"], game_colour)[1]
 		try:
 			if existing_sequences.index(body["row"]*10 + body["col"]):
 				return None
@@ -153,7 +153,7 @@ def play_move(req_obj):
 		resp_body["winner"] = False
 	else:
 		method = getattr(importlib.import_module("models.game"), "check_win")
-		resp_body["winner"] = method(current_game_board["board_state"], game_colour)[0]
+		resp_body["winner"] = method(board_str, game_colour)[0]
 
 	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
 	player_hand = method(resp_body["game_id"], body["email_id"], body["current_card"].strip())
