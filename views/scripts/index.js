@@ -7,6 +7,12 @@ var two_eyed_jacks = ["JD", "JC"];
 var one_eyed_jacks = ["JS", "JH"];
 
 var current_card = "";
+var last_player_move = null;
+
+function sleep(delay) {
+    var start = new Date().getTime();
+    while (new Date().getTime() < start + 1000);
+}
 
 function checkLogin() {
 	if (document.cookie.length > 0) {
@@ -66,10 +72,16 @@ function highlight_places(card) {
 function check_played(i, j) {
 	var played = false;
 	played = document.getElementById("R_" + i.toString() + "_" + j.toString()).style.display != "none" || document.getElementById("G_" + i.toString() + "_" + j.toString()).style.display != "none" || document.getElementById("B_" + i.toString() + "_" + j.toString()).style.display != "none";
-	if (current_card[0] != 'J') {
-		played = played && ($("#" + i.toString() + "_" + j.toString()).children()[0].id.split("_")[0] == current_card);
-	}
+	
 	return played;
+}
+
+function check_allowed_move(i, j) {
+	var allowed = true;
+	if (current_card[0] != 'J') {
+		allowed = ($("[index='" + i.toString() + "_" + j.toString() + "']").attr("id").split("_")[0] == current_card);
+	}
+	return allowed;
 }
 
 function replace_card() {
@@ -109,16 +121,16 @@ function play_move(i, j) {
 		document.getElementById(current_card + "_1").style.backgroundColor = "";
 		document.getElementById(current_card + "_2").style.backgroundColor = "";
 	}
-	if (!check_played(i, j) || rem == 1) {
+	var played_bool = check_played(i, j)
+	var allowed = check_allowed_move(i, j);
+	
+	if ((played_bool && rem == 1) || (!played_bool && rem == 0 && allowed)) {
 		$.ajax({
 			url: document.location.origin + "/api/board",
 			headers: { "User_Email": current_user, "Auth_Token": auth_token},
 			type: "POST",
 			data: {email_id: current_user, game_id: cur_game_id, row: i, col: j, remove: rem, current_card: current_card },
 			success: function(data) {
-				if (data["winner"]) {
-					alert("Your team wins");
-				}
 				current_card = "";
 				getBoard();	
 			},
@@ -137,25 +149,63 @@ function getBoard() {
 	$.ajax({
 		url: document.location.origin + "/api/board?game_id=" + cur_game_id.toString() + "&email_id=" + current_user,
 		type: "GET",
-		headers: { "User_Email": current_user, "Auth_Token": auth_token},
+		headers: { "User_Email": current_user, "Auth_Token": auth_token },
 		success: function(data) {
-			active_player = data["current_player"];
+			if (data["winner"] != null) {
+				team_name = ""
+				if (data["winner"].toLowerCase() == "r") {
+					team_name = "Red";
+				}
+				else if (data["winner"].toLowerCase() == "g") {
+					team_name = "Green";
+				}
+				else if (data["winner"].toLowerCase() == "b") {
+					team_name = "Blue";
+				}
+				alert(team_name + " team wins!");
+				document.location.href = document.location.origin + "/views/game_list";
+			}
+			var i;
+			var j;
+			if (active_player == data["current_player"]) {
+				return;
+			}
+			player_list = data["players"];
+			var players_dom_element = document.getElementById("player_rotation");
+			for (i = 0; i < player_list.length; i++)
+			{
+				if ( $("[user='" + player_list[i]["email_id"] + "']").length == 0 ) {
+					var img = document.createElement("img");
+					img.src = player_list[i]["img_url"];
+					img.setAttribute("class", "player_image");
+					img.setAttribute("user", player_list[i]["email_id"]);
+
+					var p = document.createElement("p");
+					p.innerHTML = player_list[i]["name"];
+					
+					players_dom_element.appendChild(img);
+					players_dom_element.appendChild(p);
+				}
+			}
+			var a = document.getElementById("active_image");
+			if (a != undefined)
+			{
+				a.id = "";
+			}
+			$("[user='" + data["current_player"] + "']").attr("id", "active_image");
+			
 			var board_str = data["board_state"];
 
 			board_str = board_str.trim();
 			var board = board_str.split("\n");
-			var i;
-			var j;
 			for (i = 0; i < board.length; i++) {
 				board[i] = board[i].trim();
 				board[i] = board[i].split(".");
 				for (j = 0; j < board[i].length; j++) {
-					console.log("R_" + i.toString() + "_" + j.toString());
 					document.getElementById("R_" + i.toString() + "_" + j.toString()).style.display = "none";
 					document.getElementById("G_" + i.toString() + "_" + j.toString()).style.display = "none";
 					document.getElementById("B_" + i.toString() + "_" + j.toString()).style.display = "none";
 					if (board[i][j] != "#" && board[i][j] != "A") {
-						console.log(board[i][j]);
 						document.getElementById(board[i][j] + "_" + i.toString() + "_" + j.toString()).style.display = "";
 					}
 				}
@@ -164,7 +214,6 @@ function getBoard() {
 			active_player = data["current_player"];
 			document.getElementById("player_hand").innerHTML = "";
 
-			document.getElementById("current_player").innerText = "current player = " + active_player;
 			for (i = 0; i < player_hand.length; i++) {
 				var img = document.createElement("img");
 				img.src = "images/" + player_hand[i] + ".png";
@@ -172,8 +221,9 @@ function getBoard() {
 				img.setAttribute("class", "player_card");
 				document.getElementById("player_hand").appendChild(img);
 			}
-			if (active_player == current_user) {
-				alert("Its your turn!");
+
+			if (data["last_move"] != last_player_move) {
+				show_turn(data);
 			}
 		},
 		error: function(data) {
@@ -181,6 +231,228 @@ function getBoard() {
 			console.log(data);
 		}
 	});
+}
+
+function show_turn(data) {
+	last_player_move = data["last_move"];
+	last_move = data["last_move"].split("::");
+	var t;
+	var l;
+	var moving_image;
+	var start_pos = $("[user='" + last_move[0] + "']").position();
+	t = start_pos.top;
+	l = start_pos.left;
+	if (document.getElementById("moving_image") == undefined) {
+		moving_image = document.createElement("img");
+		moving_image.id = "moving_image";
+		moving_image.style.display = "none";
+		document.getElementById("container").appendChild(moving_image);
+	}
+	moving_image = document.getElementById("moving_image");
+	var card_img = "images/" + last_move[4] + ".png";
+	moving_image.src = card_img;
+	moving_image.style.top = t;
+	moving_image.style.left = l;
+	moving_image.style.display = "";
+	var end_pos = document.getElementById("deck");
+	$("#moving_image").animate({
+		left: end_pos.offsetLeft + 50,
+		top: end_pos.offsetTop + 50
+	},
+	{
+		duration: 2000,
+		complete: function() {
+			moving_image = document.getElementById("moving_image");
+			moving_image.src = "images/point.png";
+			if (last_move[3] == "#") {
+				var end_pos = document.getElementById("R_" + last_move[1] + "_" + last_move[2]).parentElement;
+
+				$("#moving_image").animate({
+					left: end_pos.offsetLeft + 50,
+					top: end_pos.offsetTop + 50
+				},
+				{
+					duration: 2000,
+					complete: function() {
+						if (document.getElementById("R_" + last_move[1] + "_" + last_move[2]).style.display != "none") {
+							moving_image.src = "images/red.png";
+							end_pos = document.getElementById("red_coins");
+							document.getElementById("R_" + last_move[1] + "_" + last_move[2]).style.display = "none";
+						}
+						else if (document.getElementById("G_" + last_move[1] + "_" + last_move[2]).style.display != "none") {
+							moving_image.src = "images/green.png";
+							end_pos = document.getElementById("green_coins");
+							document.getElementById("G_" + last_move[1] + "_" + last_move[2]).style.display = "none";
+						}
+						else if (document.getElementById("B_" + last_move[1] + "_" + last_move[2]).style.display != "none") {
+							moving_image.src = "images/blue.png";
+							end_pos = document.getElementById("blue_coins");
+							document.getElementById("B_" + last_move[1] + "_" + last_move[2]).style.display = "none";
+						}
+						$("#moving_image").animate({
+							left: end_pos.offsetLeft + 50,
+							top: end_pos.offsetTop + 50,
+						},
+						{
+							duration: 2000,
+							complete: function() {
+								if (last_move[3] != "#") {
+									document.getElementById(last_move[3].toUpperCase() + "_" + last_move[1] + "_" + last_move[2]).style.display = ""
+								}
+								document.getElementById("moving_image").style.display = "none";
+							}
+						});
+					}
+				});
+			}
+			else {
+				if (last_move[3].toLowerCase() == "r") {
+					end_pos = document.getElementById("red_coins");
+					$("#moving_image").animate({
+						left: end_pos.offsetLeft + 50,
+						top: end_pos.offsetTop + 50,
+					},
+					{
+						duration: 2000,
+						complete: function() {
+							moving_image.src = "images/red.png";
+							end_pos = document.getElementById("R_" + last_move[1] + "_" + last_move[2]).parentElement;
+							$("#moving_image").animate({
+								left: end_pos.offsetLeft + 50,
+								top: end_pos.offsetTop + 50,
+							},
+							{
+								duration: 2000,
+								complete: function() {
+									if (last_move[3] != "#") {
+										document.getElementById(last_move[3].toUpperCase() + "_" + last_move[1] + "_" + last_move[2]).style.display = ""
+									}
+									document.getElementById("moving_image").style.display = "none";
+								}
+							});
+						}
+					});
+				}
+				else if (last_move[3].toLowerCase() == "g") {
+					end_pos = document.getElementById("green_coins");
+					$("#moving_image").animate({
+						left: end_pos.offsetLeft + 50,
+						top: end_pos.offsetTop + 50,
+					},
+					{
+						duration: 2000,
+						complete: function() {
+							moving_image.src = "images/green.png";
+							end_pos = document.getElementById("G_" + last_move[1] + "_" + last_move[2]).parentElement;
+							$("#moving_image").animate({
+								left: end_pos.offsetLeft + 50,
+								top: end_pos.offsetTop + 50,
+							},
+							{
+								duration: 2000,
+								complete: function() {
+									if (last_move[3] != "#") {
+										document.getElementById(last_move[3].toUpperCase() + "_" + last_move[1] + "_" + last_move[2]).style.display = ""
+									}
+									document.getElementById("moving_image").style.display = "none";
+								}
+							});
+						}
+					});
+				}
+				else if (last_move[3].toLowerCase() == "b") {
+					end_pos = document.getElementById("blue_coins");
+					$("#moving_image").animate({
+						left: end_pos.offsetLeft + 50,
+						top: end_pos.offsetTop + 50,
+					},
+					{
+					duration: 2000,
+					complete: function() {
+							moving_image.src = "images/blue.png";
+							end_pos = document.getElementById("B_" + last_move[1] + "_" + last_move[2]).parentElement;
+							$("#moving_image").animate({
+								left: end_pos.offsetLeft + 50,
+								top: end_pos.offsetTop + 50,
+							},
+							{
+								duration: 2000,
+								complete: function() {
+									if (last_move[3] != "#") {
+										document.getElementById(last_move[3].toUpperCase() + "_" + last_move[1] + "_" + last_move[2]).style.display = ""
+									}
+									document.getElementById("moving_image").style.display = "none";
+								}
+							});
+						}
+					});
+				}
+			}
+		}
+	});
+}
+
+function vertical_board() {
+	var i = 0;
+	var j = 0;
+	var player_hand = document.getElementById("player_hand");
+	player_hand.style.width = "100%";
+	player_hand.style.height = "250px";
+
+	player_hand.style.textAlign = "left";
+	var board_cards = document.getElementsByClassName("board_card");
+	for (i = 0; i < 10; i++) {
+		for (j = 0; j < 10; j++) {
+			var r = document.getElementById("R_" + i.toString() + "_" + j.toString());
+			var g = document.getElementById("G_" + i.toString() + "_" + j.toString());
+			var b = document.getElementById("B_" + i.toString() + "_" + j.toString());
+			var image = $("[index='" + i.toString() + "_" + j.toString() + "']");
+			image.width(130);
+			image.height(195);
+			var img_src = image.attr("src").split("/");
+			if (img_src[img_src.length - 2] == "board_cards") {
+				img_src.splice(img_src.length - 2, 1);
+				image.attr("src", img_src.join("/"));
+			}
+			image.parent().width(150);
+			image.parent().height(215);
+		}
+	}
+}
+
+
+function horizontal_board() {
+	var i = 0;
+	var j = 0;
+	var player_hand = document.getElementById("player_hand");
+	player_hand.style.height = "100%";
+	player_hand.style.width = "200px";
+	player_hand.style.textAlign = "center";
+	var board_cards = document.getElementsByClassName("board_card");
+	for (i = 0; i < 10; i++) {
+		for (j = 0; j < 10; j++) {
+			var r = document.getElementById("R_" + i.toString() + "_" + j.toString());
+			var g = document.getElementById("G_" + i.toString() + "_" + j.toString());
+			var b = document.getElementById("B_" + i.toString() + "_" + j.toString());
+			var image = $("[index='" + i.toString() + "_" + j.toString() + "']");
+			image.width(195);
+			image.height(130);
+			var img_src = image.attr("src").split("/");
+			if (img_src[img_src.length - 2] != "board_cards") {
+				var k = 0;
+				var a = [];
+				
+				for (k = 0; k <= img_src.length - 2; k++) {
+					a.push(img_src[k]);
+				}
+				a.push("board_cards");
+				a.push(img_src[img_src.length - 1]);
+				image.attr("src", a.join("/"));
+			}
+			image.parent().width(215);
+			image.parent().height(150);
+		}
+	}
 }
 
 function createBoard() {
@@ -213,27 +485,30 @@ function createBoard() {
 				img.id = id_name;
 			}
 			img.setAttribute("class", "board_card");
-			img.src = "images/" + row[j] + ".png";
+			img.src = "images/board_cards/" + row[j] + ".png";
 			img.setAttribute("onclick", "play_move(" + i.toString() + ", " + j.toString() + ")");
 			img.setAttribute("index", i.toString() + "_" + j.toString());
-			
+
 			var r_img = document.createElement("img");
 			r_img.setAttribute("class", "R");
 			r_img.src = "images/red.png";
 			r_img.id = "R_" + i.toString() + "_" + j.toString();
 			r_img.style.display = "none";
+			r_img.setAttribute("onclick", "play_move(" + i.toString() + ", " + j.toString() + ")");
 
 			var g_img = document.createElement("img");
 			g_img.setAttribute("class", "G");
 			g_img.src = "images/green.png";
 			g_img.id = "G_" + i.toString() + "_" + j.toString();
 			g_img.style.display = "none";
+			g_img.setAttribute("onclick", "play_move(" + i.toString() + ", " + j.toString() + ")");
 
 			var b_img = document.createElement("img");
 			b_img.setAttribute("class", "B");
 			b_img.src = "images/blue.png";
 			b_img.id = "B_" + i.toString() + "_" + j.toString();
 			b_img.style.display = "none";
+			b_img.setAttribute("onclick", "play_move(" + i.toString() + ", " + j.toString() + ")");
 
 			cell.appendChild(img);
 			cell.appendChild(r_img);
@@ -243,25 +518,10 @@ function createBoard() {
 			cur_row.appendChild(cell);
 		}
 		table.appendChild(cur_row);
-		for (j = 0; j < row.length; j++) {
-			var parent_id = "#" + i.toString() + "_" + j.toString();
-			var a = $(parent_id).children()[0].id;
-			if (a.length > 0) {
-				var x = $("#" + a).position();
-				document.getElementById("R_" + i.toString() + "_" + j.toString()).style.top = x.top + 50;
-				document.getElementById("R_" + i.toString() + "_" + j.toString()).style.left = x.left + 20;
-
-				document.getElementById("G_" + i.toString() + "_" + j.toString()).style.top = x.top + 50;
-				document.getElementById("G_" + i.toString() + "_" + j.toString()).style.left = x.left + 20;
-				
-				document.getElementById("B_" + i.toString() + "_" + j.toString()).style.top = x.top + 50;
-				document.getElementById("B_" + i.toString() + "_" + j.toString()).style.left = x.left + 20;
-			}
-		}
 	}
-	getBoard();
 	window.setInterval(function() { if (active_player != current_user) {getBoard()} }, 10000);
 }
 
 checkLogin();
 createBoard();
+horizontal_board();

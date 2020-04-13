@@ -6,7 +6,8 @@ def record_to_user(db_record):
 		"first_name": db_record[1],
 		"last_name": db_record[2],
 		"current_game": db_record[3],
-		"auth_token": db_record[4]
+		"auth_token": db_record[4],
+		"img_url": db_record[5]
 	}
 	return user_obj
 

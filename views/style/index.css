@@ -1,38 +1,116 @@
+body {
+	background-color: black;
+	zoom: 65%;
+}
 .board_card {
-	width: 125px;
-	height: 175px;
+	width: 195px;
+	height: 130px;
 	padding: 10px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+td {
 	position: relative;
+	width: 215px;
+	height: 150px;
 }
 .R {
-	display: block;
-	width: 100px;
-	z-index: 2;
 	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 100px;
+	height: 100px;
+	z-index: 2;
+	margin-left: -50px;
+	margin-top: -50px;
 	filter: drop-shadow(5px 5px 5px #222);
+	
 }
 .G {
-	display: block;
-  	width: 100px;
-	z-index: 2;
 	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 100px;
+	height: 100px;
+	z-index: 2;
+	margin-left: -50px;
+	margin-top: -50px;
 	filter: drop-shadow(5px 5px 5px #222);
 }
 .B {
-	display: block;
-	width: 100px;
-	z-index: 2;
 	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 100px;
+	height: 100px;
+	z-index: 2;
+	margin-left: -50px;
+	margin-top: -50px;
 	filter: drop-shadow(5px 5px 5px #222);
 }
 #player_hand {
-	height: 200px;
+	width: 200px;
+	height: 100%;
 	background-color: green;
+	text-align: center;
+	display: block;
+	float: left;
 }
 .player_card {
-	width: 125px;
-	height: 175px;
+	width: 150px;
 	margin: 5px;
 }
-#sequence_board {
+#container {
+	width: 100%;
+}
+#player_rotation {
+	float: left;
+	width: 200px;
+	text-align: center;
+	display: block;
+	background-color: black;
+	color: white;
+}
+#game_container {
+	float: left;
+	background-color: white;
+}
+#deck_container {
+	background-color: black;
+	width: 200px;
+	height: 100%;
+	text-align: center;
+	display: block;
+	float: left;
+}
+.player_image {
+	width: 90px;
+	padding: 10px;
+}
+#active_image {
+	width: 180px;
+	padding: 10px;
+	background-color: yellow;
+}
+#red_coins {
+	width: 180px;
+	padding: 10px;
+}
+#green_coins {
+	width: 180px;
+	padding: 10px;
+}
+#blue_coins {
+	width: 180px;
+	padding: 10px;
+}
+#deck {
+	width: 180px;
+	padding: 10px;
+}
+#moving_image {
+	position: absolute;
+	width: 125px;
+	z-index: 2;
 }

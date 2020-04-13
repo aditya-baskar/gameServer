@@ -1,3 +1,5 @@
+import importlib
+
 def record_to_game(db_record):
 	game_obj = {
 		"game_id": db_record[0],
@@ -8,14 +10,29 @@ def record_to_game(db_record):
 		"P5": db_record[5],
 		"P6": db_record[6],
 		"current_player": db_record[7],
-		"started": db_record[8]
+		"started": db_record[8],
+		"winner": db_record[9]
 	}
 	return game_obj
 
 def recordlist_to_game(record_list):
 	games = []
 	for record in record_list:
-		games.append(record_to_game(record))
+		game_obj = {}
+		game_obj["game_id"] = record[0]
+
+		method = getattr(importlib.import_module("models.dbConnector"), "get_user")
+		for i in range(1,7):
+			if record[i] != None:
+				cur_user = method(record[i])
+				game_obj["P" + str(i)] = {}
+				game_obj["P" + str(i)]["name"] = cur_user["first_name"] + " " + cur_user["last_name"]
+				game_obj["P" + str(i)]["email_id"] = record[i]
+			else:
+				game_obj["P" + str(i)] = None
+		game_obj["current_player"] = record[7]
+		game_obj["started"] = record[8]
+		games.append(game_obj)
 	ret_obj = {}
 	ret_obj["games"] = games
 	return ret_obj
@@ -23,7 +40,8 @@ def recordlist_to_game(record_list):
 def record_to_board(db_record):
 	board_obj = {
 		"game_id": db_record[0],
-		"board_state": db_record[1]
+		"board_state": db_record[1],
+		"last_move": db_record[3]
 	}
 	return board_obj
 

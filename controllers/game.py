@@ -72,15 +72,30 @@ def get_board(req_obj):
 	method = getattr(importlib.import_module("models.dbConnector"), "get_game")
 	current_game = method(int(body["game_id"]))
 
+	method = getattr(importlib.import_module("models.dbConnector"), "get_user")
+	players = []
+	for i in range(1,7):
+		player_index = "P" + str(i)
+		if current_game[player_index] != None:
+			user_obj = method(current_game[player_index])
+			p = {}
+			p["name"] = user_obj["first_name"] + " " + user_obj["last_name"]
+			p["img_url"] = user_obj["img_url"]
+			p["email_id"] = user_obj["email_id"]
+			players.append(p)
+
 	if player_hand == None:
 		current_board["current_hand"] = ""
 	else:
 		current_board["current_hand"] = player_hand["current_hand"]
 
 	current_board["current_player"] = current_game["current_player"]
+	current_board["winner"] = current_game["winner"]
+	current_board["players"] = players
 	resp_obj = {}
 	resp_obj["type"] = "application/json"
 	resp_obj["body"] = json.dumps(current_board)
+
 	return resp_obj
 
 def create_game(req_obj):
@@ -147,19 +162,20 @@ def play_move(req_obj):
 	board_str = method(current_game_board["board_state"], body["row"], body["col"], game_colour)
 	method = getattr(importlib.import_module("models.dbConnector"), "play_move")
 	resp_obj = {}
+	move_str = body["email_id"] + "::" + str(body["row"]) + "::" + str(body["col"]) + "::" + game_colour + "::" + body["current_card"].strip()
 	resp_obj["type"] = "application/json"
-	resp_body = method(body["game_id"], body["email_id"], board_str)
-	if int(body["remove"]) == 1:
-		resp_body["winner"] = False
-	else:
+	resp_body = method(body["game_id"], body["email_id"], board_str, move_str)
+	if int(body["remove"]) != 1:
 		method = getattr(importlib.import_module("models.game"), "check_win")
-		resp_body["winner"] = method(board_str, game_colour)[0]
+		if (method(board_str, game_colour)[0]):
+			method = getattr(importlib.import_module("models.dbConnector"), "update_winner")
+			method(body["game_id"], game_colour)
 
 	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
-	player_hand = method(resp_body["game_id"], body["email_id"], body["current_card"].strip())
+	print resp_body
+	player_hand = method(body["game_id"], body["email_id"], body["current_card"].strip())
 
 	resp_obj["body"] = {}
-	resp_obj["body"]["winner"] = resp_body["winner"]
 	resp_obj["body"]["board_state"] = board_str
 	resp_obj["body"]["current_hand"] = player_hand["current_hand"]
 

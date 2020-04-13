@@ -1,35 +1,86 @@
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta name="google-signin-scope" content="profile email">
-		<meta name="google-signin-client_id" content="253584520610-k1ovdqg4a8j3puon29129pj8uium57qt.apps.googleusercontent.com">
-		<script src="https://apis.google.com/js/platform.js" async defer></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-	</head>
-	<body>
-		<div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
-		<script>
-			function onSignIn(googleUser) {
-				// Useful data for your client-side scripts:
-				var profile = googleUser.getBasicProfile();
-				console.log("ID: " + profile.getId()); // Don't send this directly to your server!
-				console.log('Full Name: ' + profile.getName());
-				console.log('Given Name: ' + profile.getGivenName());
-				console.log('Family Name: ' + profile.getFamilyName());
-				console.log("Image URL: " + profile.getImageUrl());
-				console.log("Email: " + profile.getEmail());
-				var id_token = googleUser.getAuthResponse().id_token;
-		        $.ajax({
-		        	url: document.location.origin + "/views/login",
-		        	type: "POST",
-		        	data: {first_name: profile.getGivenName(), last_name: profile.getFamilyName(), email_id:profile.getEmail(), auth_token: id_token},
-		        	success: function(data) {
-		        		document.cookie = "email_id=" + profile.getEmail();
-			        	document.cookie = "auth_token=" + id_token;
+<head>
+	<title>Login</title>
+	<meta name="google-signin-scope" content="profile email">
+	<meta name="google-signin-client_id" content="253584520610-k1ovdqg4a8j3puon29129pj8uium57qt.apps.googleusercontent.com">
+	<script src="https://apis.google.com/js/platform.js" async defer></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/bootstrap/css/bootstrap.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/font-awesome-4.7.0/css/font-awesome.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/Linearicons-Free-v1.0.0/icon-font.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animate/animate.css">
+<!--===============================================================================================-->	
+	<link rel="stylesheet" type="text/css" href="vendor/css-hamburgers/hamburgers.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animsition/css/animsition.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/select2/select2.min.css">
+<!--===============================================================================================-->	
+	<link rel="stylesheet" type="text/css" href="vendor/daterangepicker/daterangepicker.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="css/util.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+<!--===============================================================================================-->
+</head>
+<body>
+	<div class="limiter">
+		<div class="container-login100" style="background-color:#666666;">
+			<div class="wrap-login100" style="height:750px; filter: drop-shadow(10px 10px 10px #222)">
+				<form class="login100-form validate-form" style="width:50%; position:relative; background-color:#DDDDDD;">
+					<span class="login100-form-title p-b-34">
+						Login With Google
+					</span>
+					
+					<div class="container-login100-form-btn">
+						<div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
+					</div>
+				</form>
 
-			        	document.location.href = document.location.origin + "/views/game_list";
-		        	}
-		        });
-			}
-		</script>
-	</body>
+				<div class="" style="width:50%; background-size:cover; background-position:center; position:relative; background-image: url('images/bg-01.jpg');"></div>
+			</div>
+		</div>
+	</div>
+	
+	
+
+	<div id="dropDownSelect1"></div>
+	
+	<script>
+		function onSignIn(googleUser) {
+			// Useful data for your client-side scripts:
+			var profile = googleUser.getBasicProfile();
+			console.log("ID: " + profile.getId()); // Don't send this directly to your server!
+			console.log('Full Name: ' + profile.getName());
+			console.log('Given Name: ' + profile.getGivenName());
+			console.log('Family Name: ' + profile.getFamilyName());
+			console.log("Image URL: " + profile.getImageUrl());
+			console.log("Email: " + profile.getEmail());
+			var id_token = googleUser.getAuthResponse().id_token;
+	        $.ajax({
+	        	url: document.location.origin + "/views/login",
+	        	type: "POST",
+	        	data: {
+	        		first_name: profile.getGivenName(),
+	        		last_name: profile.getFamilyName(),
+	        		email_id:profile.getEmail(),
+	        		auth_token: id_token,
+	        		img_url: profile.getImageUrl()
+	        	},
+	        	success: function(data) {
+	        		document.cookie = "email_id=" + profile.getEmail();
+		        	document.cookie = "auth_token=" + id_token;
+		        	document.location.href = document.location.origin + "/views/game_list";
+	        	}
+	        });
+		}
+	</script>
+</body>
 </html>

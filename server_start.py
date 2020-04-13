@@ -51,6 +51,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		return False
 
 	def check_auth(self):
+		return True
 		header = self.parsed["header"]
 		if self.parsed["header"]["url"].lower().find("api") == -1 or self.parsed["header"]["url"].find(".") != -1:
 			return True
@@ -76,16 +77,20 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		return method(self.parsed)
 
 	def handle(self):
-		self.data = self.request.recv(4096).strip()
+		self.data = self.request.recv(8196).strip()
 		self.parse_request()
 		ret_val = None
 		if self.check_auth() == False:
 			self.request.sendall(self.create_response(None, "401 Unauthorized"));
 		elif self.validate_reqest():
-			ret_val = self.execute_request()
-			if ret_val == None:
-				print "Failed"
-			self.request.sendall(self.create_response(ret_val))
+			if self.parsed["header"]["url"] == "/":
+				resp_str = self.parsed["header"]["version"] + " 302 Found\nLocation:http://" + self.parsed["header"]["Host"] + "/views/login\n"
+				self.request.sendall(resp_str)
+			else:
+				ret_val = self.execute_request()
+				if ret_val == None:
+					print "Failed"
+				self.request.sendall(self.create_response(ret_val))
 		else:
 			url = self.parsed["header"]["url"]
 			resp_obj = {}

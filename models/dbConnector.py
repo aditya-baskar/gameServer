@@ -1,6 +1,7 @@
 import mysql.connector
 import importlib
 import random
+import time
 
 def execute_write_command(command_to_execute):
 	connection = mysql.connector.connect(host='localhost', database='gaming_platform', user='root', password='abcdefgh')
@@ -23,14 +24,33 @@ def execute_read_command(command_to_execute):
 	connection.close()
 	return record
 
-def check_and_add_user(first_name, last_name, email_id, auth_token):
+def delete_game(game_id):
+	if len(execute_read_command("Select * from ActiveGames where game_id=" + str(game_id) + ";")) > 0:
+		execute_write_command("Delete from ActiveGames where game_id=" + str(game_id) + ";")
+		execute_write_command("Delete from CurrentBoard where game_id=" + str(game_id) + ";")
+		execute_write_command("Delete from PlayerHand where game_id=" + str(game_id) + ";")
+		execute_write_command("Delete from ActiveGames where game_id=" + str(game_id) + ";")
+		execute_write_command("Delete from CurrentDeck where game_id=" + str(game_id) + ";")
+
+def remove_player_from_game(game_id, email_id):
+	current_game = get_game(int(game_id))
+	if (current_game["started"] == 1 and current_game["winner"] != None) or (current_game["started"] == 0):
+		execute_write_command("Delete from PlayerHand where game_id=" + str(game_id) + " and email_id='" + email_id + "';")
+		for i in range(1,7):
+			if current_game["P" + str(i)] == email_id:
+				execute_write_command("Update ActiveGames set P" + str(i) + "=NULL where game_id=" + str(game_id) +";")
+	current_game = get_game(int(game_id))
+	if current_game["P1"] == None and current_game["P2"] == None and current_game["P3"] == None and current_game["P4"] == None and current_game["P5"] == None and current_game["P6"] == None:
+		delete_game(game_id)
+
+def check_and_add_user(first_name, last_name, email_id, auth_token, img_url):
 	records = execute_read_command("Select * from Users where email_id='" + email_id + "';")
 
 	if len(records) == 0:
-		execute_write_command("Insert into Users Values ('" + email_id + "', '" + first_name + "', '" + last_name + "', -1, '" + auth_token + "');")
+		execute_write_command("Insert into Users Values ('" + email_id + "', '" + first_name + "', '" + last_name + "', -1, '" + auth_token + "', '" + img_url + "');")
 		records = execute_read_command("Select * from Users where email_id='" + email_id + "';")
 	else:
-		execute_write_command("Update Users set auth_token='" + auth_token + "', first_name='" + first_name + "', last_name='" + last_name + "' where email_id='" + email_id + "';")
+		execute_write_command("Update Users set auth_token='" + auth_token + "', first_name='" + first_name + "', last_name='" + last_name + "', img_url='" + img_url + "' where email_id='" + email_id + "';")
 	method = getattr(importlib.import_module("models.user"), "record_to_user")
 	return method(records[0])
 
@@ -111,7 +131,7 @@ def start_game(game_id):
 	method = getattr(importlib.import_module("models.game"), "record_to_board")
 	return method(game_board[0])
 
-def play_move(game_id, player_email, game_board):
+def play_move(game_id, player_email, game_board, move_str):
 	current_game = execute_read_command("Select * from ActiveGames where game_id = " + str(game_id) + ";")[0]
 	if current_game[7] != player_email:
 		return None
@@ -123,10 +143,13 @@ def play_move(game_id, player_email, game_board):
 	if current_index == 6 or current_game[current_index + 1] == None:
 		next_player = 1
 	execute_write_command("Update ActiveGames set current_player = '" + current_game[next_player] + "' where game_id = " + str(game_id) + ";")
-	execute_write_command("Update CurrentBoard set board_state = '" + game_board + "' where game_id = " + str(game_id) + ";")
+	execute_write_command("Update CurrentBoard set board_state = '" + game_board + "', last_move='" + move_str + "' where game_id = " + str(game_id) + ";")
 	current_board = execute_read_command("Select * from CurrentBoard where game_id = " + str(game_id) + ";")[0]
 	method = getattr(importlib.import_module("models.game"), "record_to_board")
 	return method(current_board)
+
+def update_winner(game_id, winner_colour):
+	execute_write_command("Update ActiveGames set winner='" + winner_colour + "' where game_id=" + str(game_id) + ";")
 
 def player_pick_card(game_id, player_email, current_card = None, card_count = 1):
 	game_record = execute_read_command("Select * from ActiveGames where game_id = " + str(game_id) + ";")[0]
