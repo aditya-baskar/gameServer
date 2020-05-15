@@ -83,14 +83,10 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 		if self.check_auth() == False:
 			self.request.sendall(self.create_response(None, "401 Unauthorized"));
 		elif self.validate_reqest():
-			if self.parsed["header"]["url"] == "/":
-				resp_str = self.parsed["header"]["version"] + " 302 Found\nLocation:http://" + self.parsed["header"]["Host"] + "/views/login\n"
-				self.request.sendall(resp_str)
-			else:
-				ret_val = self.execute_request()
-				if ret_val == None:
-					print "Failed"
-				self.request.sendall(self.create_response(ret_val))
+			ret_val = self.execute_request()
+			if ret_val == None:
+				print "Failed"
+			self.request.sendall(self.create_response(ret_val))
 		else:
 			url = self.parsed["header"]["url"]
 			resp_obj = {}

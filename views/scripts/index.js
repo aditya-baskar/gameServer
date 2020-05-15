@@ -163,7 +163,6 @@ function getBoard() {
 					team_name = "Blue";
 				}
 				alert(team_name + " team wins!");
-				document.location.href = document.location.origin + "/views/game_list";
 			}
 			var i;
 			var j;

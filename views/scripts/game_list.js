@@ -127,6 +127,7 @@ function get_all_games() {
 				var cur_row = document.createElement("tr");
 				game_id = data["games"][i]["game_id"].toString()
 				cur_row.id = game_id;
+				cur_row.setAttribute("class", "game");
 				var c1 = document.createElement("td");
 				c1.id = game_id + "_P1";
 				if (data["games"][i]["P1"] != null) {

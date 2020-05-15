@@ -172,7 +172,6 @@ def play_move(req_obj):
 			method(body["game_id"], game_colour)
 
 	method = getattr(importlib.import_module("models.dbConnector"), "player_pick_card")
-	print resp_body
 	player_hand = method(body["game_id"], body["email_id"], body["current_card"].strip())
 
 	resp_obj["body"] = {}
