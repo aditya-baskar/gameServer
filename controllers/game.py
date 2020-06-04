@@ -92,6 +92,7 @@ def get_board(req_obj):
 	current_board["current_player"] = current_game["current_player"]
 	current_board["winner"] = current_game["winner"]
 	current_board["players"] = players
+	current_board["started"] = current_game["started"]
 	resp_obj = {}
 	resp_obj["type"] = "application/json"
 	resp_obj["body"] = json.dumps(current_board)

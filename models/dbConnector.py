@@ -106,7 +106,7 @@ def add_player_to_game(player_email, game_id):
 			player_found = True
 			break
 	if player_found == False:
-		execute_write_command("Update ActiveGames set P" + str(available_index) + " = '" + player_email + "';")
+		execute_write_command("Update ActiveGames set P" + str(available_index) + " = '" + player_email + "' where game_id = " + str(game_id) + ";")
 		current_game = execute_read_command("Select * from ActiveGames where game_id = " + str(game_id) + ";")[0]
 	method = getattr(importlib.import_module("models.game"), "record_to_game")
 	return method(current_game)

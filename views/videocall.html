@@ -1,0 +1,22 @@
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+		<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.6.min.js"></script>
+		<script src="https://cdn.pubnub.com/webrtc/webrtc-v2.js"></script>
+		<script type="text/javascript" src="scripts/vidcall.js"></script>
+	</head>
+	<body>
+		<div id="vid-box"></div>
+		<div id="vid-thumb"></div>
+
+	    <input type="text" name="username" id="username" placeholder="Pick a username!" />
+	    <button onclick="login()">Login</button>
+		
+		<input type="text" id="number" name="number" placeholder="Enter user to dial!" />
+		<button onclick="makeCall()">Call</button>
+		
+		<div id="inCall"> <!-- Buttons for in call features -->
+			<button id="end" onclick="end()">End</button> <button id="mute" onclick="mute()">Mute</button> <button id="pause" onclick="pause()">Pause</button>
+		</div>
+	</body>
+</html>

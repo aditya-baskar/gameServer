@@ -10,6 +10,134 @@ var current_card = "";
 var last_player_move = null;
 var game_started = false;
 
+var users_joined = [];
+var active_callers = [];
+var droppedCalls = [];
+
+var vid_map = {}
+var boardFetchInterval = null;
+
+function end(){
+	broadcaster.hangup();
+	viewer.hangup();
+}
+
+function mute(){
+	broadcaster.camera.toggleAudio();
+	viewer.camera.toggleAudio();
+	if (document.getElementById("mute").innerHTML == "Unmute")
+	{
+		$('#mute').html('mute');
+	}
+	else
+	{
+		$('#mute').html('Unmute');
+	}
+}
+
+function pause(){
+	broadcaster.camera.toggleVideo();
+	viewer.camera.toggleVideo();
+	if (document.getElementById("pause").innerHTML == "Unpause")
+	{
+		$('#pause').html('Pause');
+	}
+	else
+	{
+		$('#pause').html('Unpause');
+	}
+}
+
+function joinCall(){
+	var viewer = window.viewer = PHONE({
+	    number		: current_user + "_viewer",
+		publish_key   : 'pub-c-c9cf28b9-7b29-4e81-a591-bbafd2f0f22b',
+		subscribe_key : 'sub-c-d6f62dcc-972d-11ea-84ed-1e1b4c21df71'
+	});
+	
+	viewer.ready(function(){
+		for (i = 0; i < active_callers.length; i++) {
+			if (!users_joined.includes(active_callers[i] + "_sender"))
+			{
+				console.log(viewer.dial(active_callers[i] + "_sender"))
+			}
+		}
+		vid_map[current_user] = viewer.camera.video();
+	});
+
+	viewer.receive(function(new_broadcaster){
+	    new_broadcaster.connected(function(cur_broadcaster){
+	    	if (!users_joined.includes(cur_broadcaster.number))
+			{
+				users_joined.push(cur_broadcaster.number);
+			}
+			else
+			{
+				console.log("duplicate call " + cur_broadcaster.number);
+			}
+			cur_broadcaster.video.id = cur_broadcaster.number;
+			vid_map[cur_broadcaster.number.split("_")[0]] = (cur_broadcaster.video);
+			
+		});
+		new_broadcaster.ended(function(cur_broadcaster){
+			users_joined.pop(cur_broadcaster.number);
+			vid_map[cur_broadcaster.number.split("_")[0]] = null;
+			console.log(cur_broadcaster.number + " ended the call")
+		});
+	});
+}
+
+function addUserBackToCall(caller) {
+	console.log(caller);
+	console.log(window.viewer.dial(caller + "_sender"));
+	window.viewer.receive(function(new_broadcaster){
+	    new_broadcaster.connected(function(cur_broadcaster){
+	    	if (!users_joined.includes(cur_broadcaster.number))
+			{
+				users_joined.push(cur_broadcaster.number);
+			}
+			else
+			{
+				console.log("duplicate call " + cur_broadcaster.number);
+			}
+			cur_broadcaster.video.id = cur_broadcaster.number;
+			vid_map[cur_broadcaster.number.split("_")[0]] = cur_broadcaster.video;
+			
+		});
+		new_broadcaster.ended(function(cur_broadcaster){
+			users_joined.pop(cur_broadcaster.number);
+			vid_map[cur_broadcaster.number.split("_")[0]] = null;
+			console.log(cur_broadcaster.number + " ended the call")
+		});
+	});
+}
+
+function initCall() {
+	var broadcaster = window.broadcaster = PHONE({
+		number : current_user + "_sender",
+		publish_key   : 'pub-c-c9cf28b9-7b29-4e81-a591-bbafd2f0f22b',
+		subscribe_key : 'sub-c-d6f62dcc-972d-11ea-84ed-1e1b4c21df71'
+	});
+	broadcaster.receive(function(new_viewer){
+		new_viewer.connected(function(cur_viewer){
+			console.log(cur_viewer.number + " joined");
+			if (droppedCalls.includes(cur_viewer.number.split("_")[0])) {
+				droppedCalls.pop(cur_viewer.number.split("_")[0]);
+				addUserBackToCall(cur_viewer.number.split("_")[0]);
+			}
+			else if (document.getElementById("img_" + cur_viewer.number.split("_")[0]) != null)
+			{
+				addUserBackToCall(cur_viewer.number.split("_")[0]);
+			}
+		}); // new viewer joined
+		new_viewer.ended(function(cur_viewer){
+			console.log(cur_viewer.number + " left");
+			droppedCalls.push(cur_viewer.number.split("_")[0])
+			vid_map[cur_viewer.number.split("_")[0]] = null
+		});  // viewer left
+	});
+}
+
 function sleep(delay) {
     var start = new Date().getTime();
     while (new Date().getTime() < start + 1000);
@@ -152,11 +280,16 @@ function getBoard() {
 		type: "GET",
 		headers: { "User_Email": current_user, "Auth_Token": auth_token },
 		success: function(data) {
+			var players_dom_element = document.getElementById("player_rotation");
+			var i;
+			var j;
+			player_list = data["players"];
+			
 			if (!game_started && data["started"] == 1) {
+				initCall();
 				document.getElementById("wait").style.display = "none";
 				document.getElementById('container').style.display = "";
 				game_started = true;
-				player_list = data["players"];
 				var player_len = player_list.length;
 				for (i = 0; i < player_list.length; i++) {
 					if (player_len == 4) {
@@ -187,7 +320,30 @@ function getBoard() {
 							}
 						}
 					}
-				}	
+				}
+				active_callers = [];
+				for (i = 0; i<player_list.length; i++)
+				{
+					var user_div = document.getElementById(player_list[i]["email_id"]);
+					if (user_div == null) {
+						user_div = document.createElement("div");
+						user_div.id = player_list[i]["email_id"];
+						players_dom_element.appendChild(user_div);
+						var p = document.createElement("p");
+						p.innerHTML = player_list[i]["name"];
+						
+						user_div.appendChild(p);
+						
+					}
+					
+					if (player_list[i]["email_id"] != current_user)
+					{
+						active_callers.push(player_list[i]["email_id"]);
+					}
+				}
+				joinCall();
+				window.clearInterval(boardFetchInterval);
+				boardFetchInterval = window.setInterval(function() { getBoard() }, 10000);
 			}
 			if (data["winner"] != null) {
 				team_name = ""
@@ -200,37 +356,56 @@ function getBoard() {
 				else if (data["winner"].toLowerCase() == "b") {
 					team_name = "Blue";
 				}
-				alert(team_name + " team wins!");
+				//alert(team_name + " team wins!");
 			}
-			var i;
-			var j;
-			console.log("here");
-			if (active_player == data["current_player"]) {
-				return;
-			}
-			player_list = data["players"];
-			var players_dom_element = document.getElementById("player_rotation");
 			for (i = 0; i < player_list.length; i++)
 			{
-				if ( $("[user='" + player_list[i]["email_id"] + "']").length == 0 ) {
-					var img = document.createElement("img");
+				var user_div = document.getElementById(player_list[i]["email_id"]);
+				if (user_div == null) 
+				{
+					user_div = document.createElement("div");
+					user_div.id = player_list[i]["email_id"];
+					players_dom_element.appendChild(user_div);
+				}
+				var img = document.getElementById("img_" + player_list[i]["email_id"]);
+				var vid = document.getElementById("vid_" + player_list[i]["email_id"]);
+				
+				if (img == null && vid_map[player_list[i]["email_id"]] == null)
+				{
+					img = document.createElement("img");
 					img.src = player_list[i]["img_url"];
 					img.setAttribute("class", "player_image");
 					img.setAttribute("user", player_list[i]["email_id"]);
+					img.id = "img_" + player_list[i]["email_id"];
+					if (vid != null)
+					{
+						user_div.removeChild(vid);
+					}
+					user_div.appendChild(img);
+				}
 
-					var p = document.createElement("p");
-					p.innerHTML = player_list[i]["name"];
-					
-					players_dom_element.appendChild(img);
-					players_dom_element.appendChild(p);
+				if (vid_map[player_list[i]["email_id"]] != null)
+				{
+					if (vid != null)
+					{
+						user_div.removeChild(vid);
+					}
+					vid = vid_map[player_list[i]["email_id"]];
+					vid.width = "200"
+					vid.id = "vid_" + player_list[i]["email_id"];
+					if (img != null)
+					{
+						user_div.removeChild(img);
+					}
+					user_div.appendChild(vid);
 				}
 			}
-			var a = document.getElementById("active_image");
-			if (a != undefined)
+			var a = document.getElementsByClassName("active_image");
+			for (i = 0; i < a.length; i++)
 			{
-				a.id = "";
+				a[i].classList.remove("active_image");
 			}
-			$("[user='" + data["current_player"] + "']").attr("id", "active_image");
+			document.getElementById(data["current_player"]).classList.add("active_image");
 			
 			var board_str = data["board_state"];
 
@@ -276,7 +451,7 @@ function show_turn(data) {
 	var t;
 	var l;
 	var moving_image;
-	var start_pos = $("[user='" + last_move[0] + "']").position();
+	var start_pos = $("[id='" + last_move[0] + "']").position();
 	t = start_pos.top;
 	l = start_pos.left;
 	if (document.getElementById("moving_image") == undefined) {
@@ -556,7 +731,7 @@ function createBoard() {
 		}
 		table.appendChild(cur_row);
 	}
-	window.setInterval(function() { if (active_player != current_user) {getBoard()} }, 10000);
+	boardFetchInterval = window.setInterval(function() { getBoard() }, 1000);
 }
 
 checkLogin();

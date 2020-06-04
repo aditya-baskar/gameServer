@@ -221,9 +221,12 @@ function join_game(id) {
 		success: function(response) {
 			document.cookie = "game_id=" + id.toString();
 			document.location.href = document.location.origin + "/views/index";
-		}
+		},
+		error: function(error) {
+			console.log(error);
+			alert("Unable to start game. Please check make sure the number of users is 4 or 6")
+		} 
 	});
-	alert("Unable to start game. Please check make sure the number of users is 4 or 6")
 }
 
 function create_game() {
