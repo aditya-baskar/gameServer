@@ -4,7 +4,7 @@ import random
 import time
 
 def execute_write_command(command_to_execute):
-	connection = mysql.connector.connect(host='localhost', database='gaming_platform', user='root', password='abcdefgh')
+	connection = mysql.connector.connect(host='localhost', database='gaming_platform', user='gameuser', password='abcdefgh')
 	if connection.is_connected():
 		cursor = connection.cursor()
 		cursor.execute(command_to_execute);
@@ -13,7 +13,7 @@ def execute_write_command(command_to_execute):
 	connection.close()
 
 def execute_read_command(command_to_execute):
-	connection = mysql.connector.connect(host='localhost', database='gaming_platform', user='root', password='abcdefgh')
+	connection = mysql.connector.connect(host='localhost', database='gaming_platform', user='gameuser', password='abcdefgh')
 	record = None
 	if connection.is_connected():
 		cursor = connection.cursor()
@@ -58,6 +58,27 @@ def get_user(email_id):
 	record = execute_read_command("Select * from Users where email_id='" + email_id + "';")[0]
 	method = getattr(importlib.import_module("models.user"), "record_to_user")
 	return method(record)
+
+def get_chat_room(room_name):
+	record = execute_read_command("Select * from chat_room where room_name='" + room_name + "';")
+	if len(record) > 0:
+		room_obj = {
+			"room_name": record[0][0],
+			"users": record[0][1].split(';')
+		}
+		return room_obj
+	return None
+
+def add_user_to_room(room_name, username):
+	current_room = get_chat_room(room_name)
+	if current_room == None:
+		execute_write_command("Insert into chat_room Values ('" + room_name + "', '" + username + "');")
+		return True;
+	s = ';'
+	if username not in current_room["users"]:
+		current_room["users"].append(username)
+	execute_write_command("Update chat_room set users='" + s.join(current_room["users"]) + "' where room_name='" + room_name + "';" )
+	return True
 
 def create_game(player_1):
 	execute_write_command("Insert into ActiveGames (P1) Values ('" + player_1 + "');")

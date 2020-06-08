@@ -153,6 +153,7 @@ def play_move(req_obj):
 		game_colour = "#"
 		method = getattr(importlib.import_module("models.game"), "check_win")	
 		existing_sequences = method(current_game_board["board_state"], game_colour)[1]
+		print existing_sequences
 		try:
 			if existing_sequences.index(body["row"]*10 + body["col"]):
 				return None
@@ -168,6 +169,9 @@ def play_move(req_obj):
 	resp_body = method(body["game_id"], body["email_id"], board_str, move_str)
 	if int(body["remove"]) != 1:
 		method = getattr(importlib.import_module("models.game"), "check_win")
+		win_var = method(board_str, game_colour)
+		print win_var[0]
+		print win_var[1]
 		if (method(board_str, game_colour)[0]):
 			method = getattr(importlib.import_module("models.dbConnector"), "update_winner")
 			method(body["game_id"], game_colour)

@@ -183,7 +183,6 @@ def check_win(board_str, colour):
 			j += -1
 	if win or len(sequence_index) >= 2:
 		return (True, sequence_index)
-	
 	return (False, sequence_index)
 
 # game list object json

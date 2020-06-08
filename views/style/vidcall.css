@@ -1,0 +1,19 @@
+#chatDisplay {
+	height: 90%;
+	overflow: scroll;
+}
+
+#chat {
+	position: absolute;
+	height: 100%;
+	width: 25%;
+	right: 0;
+	background-color: #f2f2f2;
+}
+
+#main_continer {
+	position: absolute;
+	width: 75%;
+	height: 100%;
+	overflow: scroll;
+}

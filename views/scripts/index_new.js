@@ -18,13 +18,11 @@ var vid_map = {}
 var boardFetchInterval = null;
 
 function end(){
-	broadcaster.hangup();
-	viewer.hangup();
+	myPhone.hangup();
 }
 
 function mute(){
-	broadcaster.camera.toggleAudio();
-	viewer.camera.toggleAudio();
+	myPhone.camera.toggleAudio();
 	if (document.getElementById("mute").innerHTML == "Unmute")
 	{
 		$('#mute').html('mute');
@@ -36,8 +34,7 @@ function mute(){
 }
 
 function pause(){
-	broadcaster.camera.toggleVideo();
-	viewer.camera.toggleVideo();
+	myPhone.camera.toggleVideo();
 	if (document.getElementById("pause").innerHTML == "Unpause")
 	{
 		$('#pause').html('Pause');
@@ -49,42 +46,10 @@ function pause(){
 }
 
 function joinCall(){
-	var viewer = window.viewer = PHONE({
-	    number		: current_user + "_viewer",
-		publish_key   : 'pub-c-c9cf28b9-7b29-4e81-a591-bbafd2f0f22b',
-		subscribe_key : 'sub-c-d6f62dcc-972d-11ea-84ed-1e1b4c21df71'
-	});
-	
-	viewer.ready(function(){
-		for (i = 0; i < active_callers.length; i++) {
-			if (!users_joined.includes(active_callers[i] + "_sender"))
-			{
-				console.log(viewer.dial(active_callers[i] + "_sender"))
-			}
-		}
-		vid_map[current_user] = viewer.camera.video();
-	});
-
-	viewer.receive(function(new_broadcaster){
-	    new_broadcaster.connected(function(cur_broadcaster){
-	    	if (!users_joined.includes(cur_broadcaster.number))
-			{
-				users_joined.push(cur_broadcaster.number);
-			}
-			else
-			{
-				console.log("duplicate call " + cur_broadcaster.number);
-			}
-			cur_broadcaster.video.id = cur_broadcaster.number;
-			vid_map[cur_broadcaster.number.split("_")[0]] = (cur_broadcaster.video);
-			
-		});
-		new_broadcaster.ended(function(cur_broadcaster){
-			users_joined.pop(cur_broadcaster.number);
-			vid_map[cur_broadcaster.number.split("_")[0]] = null;
-			console.log(cur_broadcaster.number + " ended the call")
-		});
-	});
+	for (i = 0; i < active_callers.length; i++)
+	{
+		console.log(myPhone.dial(active_callers[i]));
+	}
 }
 
 function addUserBackToCall(caller) {
@@ -112,35 +77,86 @@ function addUserBackToCall(caller) {
 	});
 }
 
+function addUserVideos(players) {
+	var players_dom_element = document.getElementById("player_rotation");
+	for (i = 0; i < players.length; i++)
+	{
+		var player_email = players[i]["email_id"];
+		var user_div = document.getElementById(player_email);
+		if (user_div == null) 
+		{
+			user_div = document.createElement("div");
+			user_div.id = player_email;
+			players_dom_element.appendChild(user_div);
+		}
+		if (vid_map[player_email] != null)
+		{
+			var player_vid = document.getElementById("vid_" + player_email);
+			if (player_vid == null)
+			{
+				var player_img = document.getElementById("img_" + player_email);
+				if (player_img != null)
+				{
+					user_div.removeChild(player_img);
+				}
+				user_div.appendChild(vid_map[player_email]);
+			}
+		}
+		else
+		{
+			var player_vid = document.getElementById("vid_" + player_email);
+			if (player_vid != null)
+			{
+				user_div.removeChild(player_vid);
+			}
+			var player_img = document.getElementById("img_" + player_email);
+			if (player_img == null)
+			{
+				var img = document.createElement("img");
+				img.src = players[i]["img_url"];
+				img.setAttribute("class", "player_image");
+				img.setAttribute("user", player_email);
+				img.id = "img_" + player_email;
+				user_div.appendChild(img);	
+			}
+		}
+	}
+}
+
 function initCall() {
-	var broadcaster = window.broadcaster = PHONE({
-		number : current_user + "_sender",
+	var myPhone = window.myPhone = PHONE({
+		number : current_user,
 		publish_key   : 'pub-c-c9cf28b9-7b29-4e81-a591-bbafd2f0f22b',
 		subscribe_key : 'sub-c-d6f62dcc-972d-11ea-84ed-1e1b4c21df71'
 	});
-	broadcaster.receive(function(new_viewer){
-		new_viewer.connected(function(cur_viewer){
-			console.log(cur_viewer.number + " joined");
-			if (droppedCalls.includes(cur_viewer.number.split("_")[0])) {
-				droppedCalls.pop(cur_viewer.number.split("_")[0]);
-				addUserBackToCall(cur_viewer.number.split("_")[0]);
-			}
-			else if (document.getElementById("img_" + cur_viewer.number.split("_")[0]) != null)
+	myPhone.ready(function(){
+		myVid = myPhone.camera.video();
+		myVid.id = "vid_" + current_user;
+		myVid.setAttribute("width", "200px");
+		myVid.setAttribute("class", "player_image");
+		vid_map[current_user] = myVid;
+	});
+	myPhone.receive(function(new_caller){
+		new_caller.connected(function(cur_caller){
+			if (vid_map[cur_caller.number] == null)
 			{
-				addUserBackToCall(cur_viewer.number.split("_")[0]);
+				cur_caller.video.id = "vid_" + cur_caller.number;
+				cur_caller.video.setAttribute("width", "200px");
+		
+				vid_map[cur_caller.number] = cur_caller.video;
+				console.log(cur_caller.number + " joined the call");
 			}
-		}); // new viewer joined
-		new_viewer.ended(function(cur_viewer){
-			console.log(cur_viewer.number + " left");
-			droppedCalls.push(cur_viewer.number.split("_")[0])
-			vid_map[cur_viewer.number.split("_")[0]] = null
-		});  // viewer left
+		});
+		new_caller.ended(function(cur_caller){
+			vid_map[cur_caller.number] = null;
+			console.log(cur_caller.number + " left the call");
+		})
 	});
 }
 
 function sleep(delay) {
     var start = new Date().getTime();
-    while (new Date().getTime() < start + 1000);
+    while (new Date().getTime() < start + 10000);
 }
 
 function checkLogin() {
@@ -162,6 +178,7 @@ function checkLogin() {
 			document.location.href = document.location.origin + "/views/login";
 		}
 	}
+	initCall();
 }
 
 function highlight_places(card) {
@@ -286,7 +303,7 @@ function getBoard() {
 			player_list = data["players"];
 			
 			if (!game_started && data["started"] == 1) {
-				initCall();
+				//initCall();
 				document.getElementById("wait").style.display = "none";
 				document.getElementById('container').style.display = "";
 				game_started = true;
@@ -341,7 +358,6 @@ function getBoard() {
 						active_callers.push(player_list[i]["email_id"]);
 					}
 				}
-				joinCall();
 				window.clearInterval(boardFetchInterval);
 				boardFetchInterval = window.setInterval(function() { getBoard() }, 10000);
 			}
@@ -356,50 +372,11 @@ function getBoard() {
 				else if (data["winner"].toLowerCase() == "b") {
 					team_name = "Blue";
 				}
-				//alert(team_name + " team wins!");
+				alert(team_name + " team wins!");
 			}
-			for (i = 0; i < player_list.length; i++)
-			{
-				var user_div = document.getElementById(player_list[i]["email_id"]);
-				if (user_div == null) 
-				{
-					user_div = document.createElement("div");
-					user_div.id = player_list[i]["email_id"];
-					players_dom_element.appendChild(user_div);
-				}
-				var img = document.getElementById("img_" + player_list[i]["email_id"]);
-				var vid = document.getElementById("vid_" + player_list[i]["email_id"]);
-				
-				if (img == null && vid_map[player_list[i]["email_id"]] == null)
-				{
-					img = document.createElement("img");
-					img.src = player_list[i]["img_url"];
-					img.setAttribute("class", "player_image");
-					img.setAttribute("user", player_list[i]["email_id"]);
-					img.id = "img_" + player_list[i]["email_id"];
-					if (vid != null)
-					{
-						user_div.removeChild(vid);
-					}
-					user_div.appendChild(img);
-				}
+			
+			addUserVideos(player_list);
 
-				if (vid_map[player_list[i]["email_id"]] != null)
-				{
-					if (vid != null)
-					{
-						user_div.removeChild(vid);
-					}
-					vid = vid_map[player_list[i]["email_id"]];
-					vid.width = "200"
-					vid.id = "vid_" + player_list[i]["email_id"];
-					if (img != null)
-					{
-						user_div.removeChild(img);
-					}
-					user_div.appendChild(vid);
-				}
-			}
 			var a = document.getElementsByClassName("active_image");
 			for (i = 0; i < a.length; i++)
 			{
@@ -438,6 +415,7 @@ function getBoard() {
 			if (data["last_move"] != last_player_move) {
 				show_turn(data);
 			}
+			joinCall();
 		},
 		error: function(data) {
 			console.log(data);
